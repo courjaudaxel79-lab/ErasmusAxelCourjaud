@@ -648,7 +648,7 @@
         function playPodcast(podcastId, podcastName) {
             currentTrackIndex = podcastId;
             
-            const audioPath = `podcast/ep${podcastId}.m4a`;
+            const audioPath = `podcast/ep${podcastId}.mp3`;
 
             audio.src = audioPath;
             audio.play().then(() => {
@@ -797,4 +797,5 @@
         setVolume(50);
     </script>
 </body>
+
 </html>
