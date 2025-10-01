@@ -646,29 +646,29 @@
             displayedPodcasts.add(podcastId);
         }
 
-       function playPodcast(podcastId, podcastName) {
-    currentTrackIndex = podcastId;
-    
-    const audioPath = `https://username.github.io/mon-site/podcast/ep${podcastId}.mp3`;
+      function playPodcast(podcastId, podcastName) {
+            currentTrackIndex = podcastId;
+            
+            const audioPath = `podcast/ep${podcastId}.m4a`;
 
-    audio.src = audioPath;
-    audio.play().then(() => {
-        isPlaying = true;
-        document.getElementById('playIcon').textContent = '⏸';
-    }).catch(err => {
-        console.error("Erreur lecture audio :", err);
-    });
+            audio.src = audioPath;
+            audio.play().then(() => {
+                isPlaying = true;
+                document.getElementById('playIcon').textContent = '⏸';
+            }).catch(err => {
+                console.error("Erreur lecture audio :", err);
+            });
 
-    document.getElementById('trackTitle').textContent = podcastName;
-    document.getElementById('trackArtist').textContent = `Podcast #${podcastId} • En cours de lecture`;
+            document.getElementById('trackTitle').textContent = podcastName;
+            document.getElementById('trackArtist').textContent = `Podcast #${podcastId} • En cours de lecture`;
 
-    document.querySelectorAll('.podcast-point').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.podcast-point').forEach(p => p.classList.remove('active'));
 
-    const pointEl = document.querySelector(`[onclick*="playPodcast(${podcastId},"]`);
-    if (pointEl) pointEl.classList.add('active');
+            const pointEl = document.querySelector(`[onclick*="playPodcast(${podcastId},"]`);
+            if (pointEl) pointEl.classList.add('active');
 
-    createPodcastImages(podcastId, podcastName);
-}
+            createPodcastImages(podcastId, podcastName);
+        }
 
         function togglePlay() {
             if (isPlaying) {
@@ -800,6 +800,7 @@
 </body>
 
 </html>
+
 
 
 
