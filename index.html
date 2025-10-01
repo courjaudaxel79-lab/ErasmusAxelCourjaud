@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@100;300&display=swap" rel="stylesheet">
+
+    
+    <title>Axel Courjaud Erasmus</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #ffffff;
+            overflow: hidden;
+            cursor: grab;
+            user-select: none;
+        }
+
+        body.dragging {
+            cursor: grabbing;
+        }
+
+        #canvas {
+            position: absolute;
+            width: 5000px;
+            height: 5000px;
+            background: 
+                radial-gradient(circle at 25% 25%, rgba(0, 0, 0, 0.02) 1px, transparent 1px),
+                radial-gradient(circle at 75% 75%, rgba(0, 0, 0, 0.02) 1px, transparent 1px);
+            background-size: 50px 50px;
+            background-position: 0 0, 25px 25px;
+            transition: transform 0.1s ease-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Wave Curve */
+        .wave-container {
+            position: absolute;
+            width: 3000px;
+            height: 400px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .wave-svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.1));
+        }
+
+        .wave-line {
+            fill: none;
+            stroke: url(#waveGradient);
+            stroke-width: 8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            animation: waveFlow 6s ease-in-out infinite;
+        }
+
+        /* Points sur la courbe */
+        .podcast-point {
+            r: 8;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .podcast-point:hover {
+            r: 12;
+            filter: brightness(1.2) drop-shadow(0 0 10px rgba(255,255,255,0.8));
+        }
+
+        .podcast-point.active {
+            r: 10;
+            filter: brightness(1.5) drop-shadow(0 0 15px rgba(255,255,255,1));
+        }
+
+        .point-red { fill: #FFFFFF; stroke: #E85A7A; stroke-width: 3; }
+        .point-blue { fill: #FFFFFF; stroke: #85C1E9; stroke-width: 3; }
+        .point-yellow { fill: #FFFFFF; stroke: #F4D03F; stroke-width: 3; }
+
+        @keyframes waveFlow {
+            0%, 100% { 
+                transform: translateY(0px) scaleY(1);
+            }
+            25% { 
+                transform: translateY(-5px) scaleY(1.02);
+            }
+            75% { 
+                transform: translateY(3px) scaleY(0.98);
+            }
+        }
+
+        .viewport {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Zoom Controls */
+        .zoom-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            z-index: 1000;
+        }
+
+        .zoom-btn {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            backdrop-filter: blur(10px);
+            transition: all 0.2s ease;
+        }
+
+        .zoom-btn:hover {
+            background: rgba(240, 240, 240, 0.95);
+            transform: scale(1.05);
+        }
+
+        /* Images qui apparaissent */
+        .podcast-images {
+            position: absolute;
+            display: flex;
+            gap: 15px;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: imageAppear 0.5s ease-out forwards;
+        }
+
+        .podcast-image {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .podcast-image.red-theme {
+            background: linear-gradient(135deg, #E85A7A 0%, #ff6b8a 100%);
+        }
+
+        .podcast-image.blue-theme {
+            background: linear-gradient(135deg, #85C1E9 0%, #5dade2 100%);
+        }
+
+        .podcast-image.yellow-theme {
+            background: linear-gradient(135deg, #F4D03F 0%, #f7dc6f 100%);
+        }
+
+        @keyframes imageAppear {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .zoom-level {
+            position: fixed;
+            bottom: 120px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 1000;
+        }
+
+        /* Position Indicator */
+        .position-indicator {
+            position: fixed;
+            bottom: 150px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 1000;
+        }
+
+        /* Chapter Titles */
+        .chapter-title {
+            position: absolute;
+            font-size: 70px;
+            font-family: 'Robotto', sans-serif;
+            font-weight: thin;
+            color: #181818;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.8);
+            pointer-events: none;
+            max-width: 900px;
+        }
+
+        .chapter-1 {
+            top: -360px;
+            left: 50px;
+        }
+
+        .chapter-2 {
+            top: 500px;
+            left: 1050px;
+        }
+
+        .chapter-3 {
+            top: -360px;
+            left: 2000px;
+        }
+
+        /* MP3 Player */
+        .mp3-player {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            z-index: 2000;
+            backdrop-filter: blur(10px);
+            cursor: default;
+        }
+
+        .mp3-player * {
+            cursor: default;
+        }
+
+        .mp3-player button,
+        .mp3-player input {
+            cursor: pointer;
+        }
+
+        .player-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .control-btn {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .play-btn {
+            width: 50px;
+            height: 50px;
+            font-size: 20px;
+        }
+
+        .track-info {
+            flex: 1;
+            margin-left: 20px;
+            color: white;
+        }
+
+        .track-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .track-artist {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .progress-container {
+            flex: 1;
+            max-width: 300px;
+            margin: 0 20px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: white;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        .time-display {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            margin-top: 5px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: white;
+        }
+
+        .volume-slider {
+            width: 80px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        /* Reset Button */
+        .reset-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            color: #333;
+            backdrop-filter: blur(10px);
+            transition: all 0.2s ease;
+            z-index: 1000;
+        }
+
+        .reset-btn:hover {
+            background: rgba(240, 240, 240, 0.95);
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="viewport">
+        <div id="canvas">
+            <div class="wave-container">
+                <svg class="wave-svg" viewBox="0 0 3000 400" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="waveGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:#E85A7A;stop-opacity:1" />
+                            <stop offset="33.33%" style="stop-color:#E85A7A;stop-opacity:1" />
+                            <stop offset="33.34%" style="stop-color:#85C1E9;stop-opacity:1" />
+                            <stop offset="66.66%" style="stop-color:#85C1E9;stop-opacity:1" />
+                            <stop offset="66.67%" style="stop-color:#F4D03F;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#F4D03F;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                    
+                    <!-- Courbe continue avec vagues très allongée -->
+                    <path class="wave-line" d="M0,200 
+                        C125,150 250,250 375,200
+                        C500,150 625,250 750,200
+                        C875,150 1000,250 1125,200
+                        C1250,150 1375,250 1500,200
+                        C1625,150 1750,250 1875,200
+                        C2000,150 2125,250 2250,200
+                        C2375,150 2500,250 2625,200
+                        C2750,150 2875,250 3000,200"/>
+                    
+                    <!-- Points podcasts - Section Rouge (5 points) -->
+                    <circle class="podcast-point point-red" cx="200" cy="175" onclick="playPodcast(1, 'Épisode 1 : Premiers pas à Aarhus.')" />
+                    <circle class="podcast-point point-red" cx="400" cy="225" onclick="playPodcast(2, 'Épisode 2 : Système universitaire danois : vision progressiste de l\'éducation.')" />
+                    <circle class="podcast-point point-red" cx="600" cy="175" onclick="playPodcast(3, 'Épisode 3 : Le vélo, roi du quotidien Danois.')" />
+                    <circle class="podcast-point point-red" cx="800" cy="225" onclick="playPodcast(4, 'Épisode 4 : Place de la religion au Danemark : foi ou folklore ?')" />
+                    <circle class="podcast-point point-red" cx="980" cy="190" onclick="playPodcast(5, 'Épisode 5 : Danemark : l\'escalade des politiques écologiques et environnementales.')" />
+                    
+                    <!-- Points podcasts - Section Bleue (4 points) -->
+                    <circle class="podcast-point point-blue" cx="1200" cy="175" onclick="playPodcast(6, 'Épisode 6 : Voyager loin, polluer moins.')" />
+                    <circle class="podcast-point point-blue" cx="1400" cy="225" onclick="playPodcast(7, 'Épisode 7 : Escales et visites à Copenhague.')" />
+                    <circle class="podcast-point point-blue" cx="1600" cy="175" onclick="playPodcast(8, 'Épisode 8 : Stockholm : immersion dans la culture suédoise et Skandinave.')" />
+                    <circle class="podcast-point point-blue" cx="1980" cy="210" onclick="playPodcast(9, 'Épisode 9 : Prague : symbiose culturelle, touristique, historique et festive.')" />
+                    
+                    <!-- Points podcasts - Section Jaune (3 points) -->
+                    <circle class="podcast-point point-yellow" cx="2200" cy="180" onclick="playPodcast(10, 'Episode 10 : Quand l\'Erasmus révèle certaines difficultés')" />
+                    <circle class="podcast-point point-yellow" cx="2500" cy="225" onclick="playPodcast(11, 'Épisode 11 : Composer autrement')" />
+                    <circle class="podcast-point point-yellow" cx="2800" cy="185" onclick="playPodcast(12, 'Épisode 12 : Composer musicalement')" />
+                </svg>
+                
+                <!-- Chapter Titles -->
+                <div class="chapter-title chapter-1">
+                    Chapitre 1 :<br>
+                    Euphorie du départ : habiter un ailleurs
+                </div>
+                <div class="chapter-title chapter-2">
+                    Chapitre 2 :<br>
+                    Voyages pendant l'Erasmus : sillonner l'Europe en bus
+                </div>
+                <div class="chapter-title chapter-3">
+                    Chapitre 3 :<br>
+                    Défis inattendus : comment s'adapter ?
+                </div>
+                
+                <div id="allPodcastImages"></div>
+            </div>
+        </div>
+    </div>
+
+    <button class="reset-btn" onclick="resetView()">🏠 Centrer</button>
+
+    <div class="zoom-controls">
+        <button class="zoom-btn" onclick="zoomIn()">+</button>
+        <button class="zoom-btn" onclick="zoomOut()">−</button>
+    </div>
+
+    <div class="zoom-level">Zoom: <span id="zoomDisplay">100%</span></div>
+    <div class="position-indicator">Position: <span id="positionDisplay">0, 0</span></div>
+
+    <div class="mp3-player">
+        <div class="player-controls">
+            <button class="control-btn" onclick="previousTrack()">⏮</button>
+            <button class="control-btn play-btn" onclick="togglePlay()">
+                <span id="playIcon">▶</span>
+            </button>
+            <button class="control-btn" onclick="nextTrack()">⏭</button>
+        </div>
+
+        <div class="track-info">
+            <div class="track-title" id="trackTitle">Lecteur Audio</div>
+            <div class="track-artist" id="trackArtist">Prêt à diffuser</div>
+        </div>
+
+        <div class="progress-container">
+            <div class="progress-bar" onclick="seekTo(event)">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="time-display">
+                <span id="currentTime">0:00</span>
+                <span id="duration">0:00</span>
+            </div>
+        </div>
+
+        <div class="volume-control">
+            <button class="control-btn" onclick="toggleMute()">
+                <span id="volumeIcon">🔊</span>
+            </button>
+            <input type="range" class="volume-slider" min="0" max="100" value="50" onchange="setVolume(this.value)">
+        </div>
+    </div>
+
+    <audio id="audioPlayer"></audio>
+
+    <script>
+        let canvas = document.getElementById('canvas');
+        let isDragging = false;
+        let lastX = 0;
+        let lastY = 0;
+        let currentX = -1550;
+        let currentY = -1990;
+        let scale = 0.6;
+        let audio = document.getElementById('audioPlayer');
+        let isPlaying = false;
+        let currentTrackIndex = 0;
+        let playlist = [];
+        let displayedPodcasts = new Set();
+
+        function updateCanvasPosition() {
+            canvas.style.transform = `translate(${currentX}px, ${currentY}px) scale(${scale})`;
+            document.getElementById('positionDisplay').textContent = `${-Math.round(currentX)}, ${-Math.round(currentY)}`;
+            document.getElementById('zoomDisplay').textContent = `${Math.round(scale * 100)}%`;
+        }
+
+        document.addEventListener('mousedown', (e) => {
+            if (e.target.closest('.mp3-player') || e.target.closest('.zoom-controls') || e.target.closest('.reset-btn') || e.target.closest('.clear-btn')) return;
+            
+            isDragging = true;
+            lastX = e.clientX;
+            lastY = e.clientY;
+            document.body.classList.add('dragging');
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            
+            let deltaX = e.clientX - lastX;
+            let deltaY = e.clientY - lastY;
+            
+            currentX += deltaX;
+            currentY += deltaY;
+            
+            updateCanvasPosition();
+            
+            lastX = e.clientX;
+            lastY = e.clientY;
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            document.body.classList.remove('dragging');
+        });
+
+        document.addEventListener('wheel', (e) => {
+            if (e.target.closest('.mp3-player')) return;
+            
+            let zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+            let newScale = scale * zoomFactor;
+            
+            if (newScale >= 0.1 && newScale <= 5) {
+                scale = newScale;
+                updateCanvasPosition();
+            }
+        });
+
+        function zoomIn() {
+            if (scale < 5) {
+                scale *= 1.2;
+                updateCanvasPosition();
+            }
+        }
+
+        function zoomOut() {
+            if (scale > 0.1) {
+                scale /= 1.2;
+                updateCanvasPosition();
+            }
+        }
+
+        function resetView() {
+            currentX = -1500;
+            currentY = -2500;
+            scale = 1;
+            updateCanvasPosition();
+        }
+
+        function createPodcastImages(podcastId, podcastName) {
+            if (displayedPodcasts.has(podcastId)) {
+                return;
+            }
+
+            const container = document.getElementById('allPodcastImages');
+
+            let leftPosition = 0;
+            let theme = '';
+            let topPosition = 0;
+
+            const isAbove = (podcastId % 2 === 0);
+
+            if (podcastId <= 5) {
+                const pointPositions = [200, 400, 600, 800, 980];
+                leftPosition = pointPositions[podcastId - 1] - 202.5;
+                theme = 'red-theme';
+                topPosition = isAbove ? -40 : 280;
+            } else if (podcastId <= 9) {
+                const pointPositions = [1200, 1400, 1600, 1980];
+                leftPosition = pointPositions[podcastId - 6] - 202.5;
+                theme = 'blue-theme';
+                topPosition = isAbove ? -40 : 280;
+            } else {
+                const pointPositions = [2200, 2500, 2800];
+                leftPosition = pointPositions[podcastId - 10] - 202.5;
+                theme = 'yellow-theme';
+                topPosition = isAbove ? -40 : 280;
+            }
+
+            const imageGroup = document.createElement('div');
+            imageGroup.className = 'podcast-images';
+            imageGroup.id = `podcast-${podcastId}`;
+            imageGroup.style.left = leftPosition + 'px';
+            imageGroup.style.top = topPosition + 'px';
+
+            for (let i = 1; i <= 3; i++) {
+                const image = document.createElement('div');
+                image.className = `podcast-image ${theme}`;
+
+                const imagePath = `img/${podcastId}_${i}.jpg`;
+
+                const imgElement = document.createElement('img');
+                imgElement.src = imagePath;
+                imgElement.alt = `${podcastName} - Image ${i}`;
+                imgElement.style.width = '100%';
+                imgElement.style.height = '100%';
+                imgElement.style.objectFit = 'cover';
+                imgElement.style.borderRadius = '12px';
+
+                imgElement.onerror = function() {
+                    image.textContent = `${podcastName} ${i}`;
+                    image.style.background = '#ccc';
+                };
+
+                imgElement.onload = function() {
+                    image.style.background = 'none';
+                };
+
+                image.appendChild(imgElement);
+                imageGroup.appendChild(image);
+            }
+
+            container.appendChild(imageGroup);
+            displayedPodcasts.add(podcastId);
+        }
+
+        function playPodcast(podcastId, podcastName) {
+            currentTrackIndex = podcastId;
+            
+            const audioPath = `podcast/ep${podcastId}.m4a`;
+
+            audio.src = audioPath;
+            audio.play().then(() => {
+                isPlaying = true;
+                document.getElementById('playIcon').textContent = '⏸';
+            }).catch(err => {
+                console.error("Erreur lecture audio :", err);
+            });
+
+            document.getElementById('trackTitle').textContent = podcastName;
+            document.getElementById('trackArtist').textContent = `Podcast #${podcastId} • En cours de lecture`;
+
+            document.querySelectorAll('.podcast-point').forEach(p => p.classList.remove('active'));
+
+            const pointEl = document.querySelector(`[onclick*="playPodcast(${podcastId},"]`);
+            if (pointEl) pointEl.classList.add('active');
+
+            createPodcastImages(podcastId, podcastName);
+        }
+
+        function togglePlay() {
+            if (isPlaying) {
+                audio.pause();
+                isPlaying = false;
+                document.getElementById('playIcon').textContent = '▶';
+            } else {
+                audio.play().then(() => {
+                    isPlaying = true;
+                    document.getElementById('playIcon').textContent = '⏸';
+                }).catch(err => {
+                    console.error("Erreur lecture audio :", err);
+                });
+            }
+        }
+
+        function previousTrack() {
+            if (currentTrackIndex > 1) {
+                currentTrackIndex--;
+            } else {
+                currentTrackIndex = 12;
+            }
+            loadPodcastByIndex(currentTrackIndex);
+        }
+
+        function nextTrack() {
+            if (currentTrackIndex < 12) {
+                currentTrackIndex++;
+            } else {
+                currentTrackIndex = 1;
+            }
+            loadPodcastByIndex(currentTrackIndex);
+        }
+
+        function loadPodcastByIndex(podcastId) {
+            const podcastTitles = [
+                '',
+                'Épisode 1 : Premiers pas à Aarhus.',
+                'Épisode 2 : Système universitaire danois : vision progressiste de l\'éducation.',
+                'Épisode 3 : Le vélo, roi du quotidien Danois.',
+                'Épisode 4 : Place de la religion au Danemark : foi ou folklore ?',
+                'Épisode 5 : Danemark : l\'escalade des politiques écologiques et environnementales.',
+                'Épisode 6 : Voyager loin, polluer moins.',
+                'Épisode 7 : Escales et visites à Copenhague.',
+                'Épisode 8 : Stockholm : immersion dans la culture suédoise et Skandinave.',
+                'Épisode 9 : Prague : symbiose culturelle, touristique, historique et festive.',
+                'Episode 10 : Quand l\'Erasmus révèle certaines difficultés',
+                'Épisode 11 : Composer autrement',
+                'Épisode 12 : Composer musicalement'
+            ];
+
+            const podcastName = podcastTitles[podcastId] || `Podcast #${podcastId}`;
+            
+            const audioPath = `podcast/ep${podcastId}.m4a`;
+            audio.src = audioPath;
+            
+            if (isPlaying) {
+                audio.play().catch(err => console.error("Erreur lecture audio :", err));
+            }
+
+            document.getElementById('trackTitle').textContent = podcastName;
+            document.getElementById('trackArtist').textContent = `Podcast #${podcastId} • En cours de lecture`;
+
+            document.querySelectorAll('.podcast-point').forEach(p => p.classList.remove('active'));
+
+            const pointEl = document.querySelector(`[onclick*="playPodcast(${podcastId},"]`);
+            if (pointEl) pointEl.classList.add('active');
+
+            createPodcastImages(podcastId, podcastName);
+        }
+
+        function seekTo(event) {
+            if (!audio.duration) return;
+            
+            let rect = event.currentTarget.getBoundingClientRect();
+            let percent = (event.clientX - rect.left) / rect.width;
+            audio.currentTime = percent * audio.duration;
+        }
+
+        function setVolume(value) {
+            audio.volume = value / 100;
+            let icon = document.getElementById('volumeIcon');
+            if (value == 0) {
+                icon.textContent = '🔇';
+            } else if (value < 50) {
+                icon.textContent = '🔉';
+            } else {
+                icon.textContent = '🔊';
+            }
+        }
+
+        function toggleMute() {
+            if (audio.muted) {
+                audio.muted = false;
+                document.getElementById('volumeIcon').textContent = '🔊';
+            } else {
+                audio.muted = true;
+                document.getElementById('volumeIcon').textContent = '🔇';
+            }
+        }
+
+        function formatTime(seconds) {
+            let mins = Math.floor(seconds / 60);
+            let secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        audio.addEventListener('timeupdate', () => {
+            if (audio.duration) {
+                let percent = (audio.currentTime / audio.duration) * 100;
+                document.getElementById('progressFill').style.width = percent + '%';
+                document.getElementById('currentTime').textContent = formatTime(audio.currentTime);
+                document.getElementById('duration').textContent = formatTime(audio.duration);
+            }
+        });
+
+        audio.addEventListener('ended', () => {
+            if (playlist.length > 1) {
+                nextTrack();
+            } else {
+                isPlaying = false;
+                document.getElementById('playIcon').textContent = '▶';
+            }
+        });
+
+        updateCanvasPosition();
+        setVolume(50);
+    </script>
+</body>
+</html>
