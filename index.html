@@ -646,41 +646,43 @@
             displayedPodcasts.add(podcastId);
         }
 
-      function playPodcast(podcastId, podcastName) {
-    currentTrackIndex = podcastId;
-    
-    const audioPath = `podcast/ep${podcastId}.m4a`;
-    console.log("👉 Tentative de lecture :", audioPath);
+     function playPodcast(podcastId, podcastName) {
+            currentTrackIndex = podcastId;
+            
+            const audioPath = `podcast/ep${podcastId}.m4a`;
+            console.log("👉 Tentative de lecture :", audioPath);
 
-    audio.pause();
-    audio.currentTime = 0;
-    audio.src = audioPath;
+            audio.pause();
+            audio.currentTime = 0;
+            audio.src = audioPath;
 
-    // Vérifier si le fichier commence bien à charger
-    audio.addEventListener("loadeddata", () => {
-        console.log(`✅ Fichier chargé : ${audioPath}`);
-    }, { once: true });
+            // Vérifier si le fichier commence bien à charger
+            audio.addEventListener("loadeddata", () => {
+                console.log(`✅ Fichier chargé : ${audioPath}`);
+            }, { once: true });
 
-    audio.addEventListener("error", (e) => {
-        console.error(`❌ Erreur de chargement : ${audioPath}`, e);
-    }, { once: true });
+            audio.addEventListener("error", (e) => {
+                console.error(`❌ Erreur de chargement : ${audioPath}`, e);
+            }, { once: true });
 
-    audio.play().then(() => {
-        console.log("▶️ Lecture démarrée :", audioPath);
-        isPlaying = true;
-        document.getElementById('playIcon').textContent = '⏸';
-    }).catch(err => {
-        console.error("⚠️ Erreur lecture audio :", err);
-    });
+            audio.play().then(() => {
+                console.log("▶️ Lecture démarrée :", audioPath);
+                isPlaying = true;
+                document.getElementById('playIcon').textContent = '⏸';
+            }).catch(err => {
+                console.error("⚠️ Erreur lecture audio :", err);
+            });
 
-    document.getElementById('trackTitle').textContent = podcastName;
-    document.getElementById('trackArtist').textContent = `Podcast #${podcastId} • En cours de lecture`;
+            document.getElementById('trackTitle').textContent = podcastName;
+            document.getElementById('trackArtist').textContent = `Podcast #${podcastId} • En cours de lecture`;
 
-    document.querySelectorAll('.podcast-point').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.podcast-point').forEach(p => p.classList.remove('active'));
 
-    const pointEl = document.querySelector(`[onclick*="playPodcast(${podcastId},"]`);
-    if (po
+            const pointEl = document.querySelector(`[onclick*="playPodcast(${podcastId},"]`);
+            if (pointEl) pointEl.classList.add('active');
 
+            createPodcastImages(podcastId, podcastName);
+        }
         function togglePlay() {
             if (isPlaying) {
                 audio.pause();
@@ -811,6 +813,7 @@
 </body>
 
 </html>
+
 
 
 
